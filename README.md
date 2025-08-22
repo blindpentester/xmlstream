@@ -1,9 +1,10 @@
-# XMLStream.py  
+# XMLStream.py ⚙️📡
+
 **Stream massive XML (e.g., Nmap) into JSONL / SQLite / MySQL-dump / Mongo-ready JSONL — safely, fast, and with tiny memory.**
 
 ---
 
-## Overview
+## Overview 🚀
 
 `xmlstream.py` converts huge XML files into useful, importable formats **without loading the whole tree into RAM**. It uses `lxml.etree.iterparse` with aggressive element clearing to keep memory flat even on multi‑gigabyte inputs.
 
@@ -16,7 +17,7 @@
 
 ---
 
-## Quick Start
+## Quick Start ⚡
 
 ```bash
 # Convert Nmap XML -> JSONL (one host per line)
@@ -37,7 +38,7 @@ mongoimport --db mydb --collection nmap_hosts --type json --file hosts.jsonl
 
 ---
 
-## Installation
+## Installation 🛠️
 
 Requirements:
 
@@ -52,7 +53,7 @@ SQLite support uses Python’s stdlib `sqlite3` (no extra install). MySQL dump o
 
 ---
 
-## Command Line
+## Command Line 🧾
 
 ```text
 Stream massive XML into JSONL / SQLite / MySQL-dump / Mongo JSONL
@@ -77,9 +78,9 @@ Behavior niceties:
 
 ---
 
-## Modes
+## Modes 🔀
 
-### Generic Mode
+### Generic Mode 🧩
 
 * Every element matching `--record-tag` becomes a JSON object.
 * Attributes are emitted as keys prefixed with `@`.
@@ -102,7 +103,7 @@ Outputs (JSONL):
 {"_tag":"item","@id":"2","name":"Beta","note":"Hi"}
 ```
 
-### Nmap Mode
+### Nmap Mode 🧭
 
 * Use `--mode nmap --record-tag host`.
 * Produces compact per‑host JSON objects including addresses, hostnames, ports (state/service/CPE/scripts), host scripts, OS matches, uptime when present.
@@ -130,14 +131,14 @@ Outputs (JSONL):
 
 ---
 
-## Output Formats
+## Output Formats 📤
 
-### JSONL (default)
+### JSONL (default) 🧱
 
 * One JSON object per line (easy to stream/process/`jq`/`mongoimport`).
 * Use `--pretty` sparingly for debugging (it’s bigger & slower).
 
-### SQLite (`--format sqlite`)
+### SQLite (`--format sqlite`) 🗃️
 
 * Creates a DB with a single table (default `records`):
 
@@ -166,7 +167,7 @@ WHERE json_extract(p.value, "$.state") = "open";
 '
 ```
 
-### MySQL Dump (`--format mysql-sql`)
+### MySQL Dump (`--format mysql-sql`) 🐬
 
 * Writes a `.sql` file with `CREATE TABLE` + `INSERT` statements using a `JSON` column (MySQL 5.7+):
 
@@ -186,13 +187,13 @@ CREATE TABLE IF NOT EXISTS `records` (
 mysql -u user -p mydb < out.sql
 ```
 
-### Mongo-ready JSONL (`--format mongo-jsonl`)
+### Mongo-ready JSONL (`--format mongo-jsonl`) 🍃
 
 * Same as JSONL; named for clarity with `mongoimport`.
 
 ---
 
-## Performance Tips
+## Performance Tips ⚡
 
 * **Always set `--record-tag`** for large XML to avoid serializing unrelated branches.
 * Avoid `--pretty` for bulk conversions.
@@ -200,7 +201,7 @@ mysql -u user -p mydb < out.sql
 
 ---
 
-## Error Handling & Signals
+## Error Handling & Signals 🚨
 
 * **XML errors:** prints a descriptive message and returns exit code **2**.
 * **Ctrl‑C / SIGINT:** triggers a soft stop — finishes the current record, flushes, closes resources.
@@ -208,7 +209,7 @@ mysql -u user -p mydb < out.sql
 
 ---
 
-## Exit Codes
+## Exit Codes 🧾
 
 * `0` — Success (including graceful interruption)
 * `2` — XML syntax error
@@ -216,7 +217,7 @@ mysql -u user -p mydb < out.sql
 
 ---
 
-## Troubleshooting
+## Troubleshooting 🩹
 
 * **It “just sits there.”** You probably ran it with no args and no pipe in an older version. In the current version, it prints help. Otherwise, provide `-i file.xml` or pipe input.
 * **Memory climbs on huge files.** Ensure you set `--record-tag` and you’re using the shipped streaming build (not a modified DOM parse).
@@ -224,7 +225,7 @@ mysql -u user -p mydb < out.sql
 
 ---
 
-## Programmatic Notes (Advanced)
+## Programmatic Notes (Advanced) 🧑‍💻
 
 While `xmlstream.py` is designed as a CLI, the internals are reusable:
 
@@ -233,7 +234,7 @@ While `xmlstream.py` is designed as a CLI, the internals are reusable:
 
 ---
 
-## Roadmap
+## Roadmap 🗺️
 
 * Nessus‑aware and OpenVAS‑aware modes
 * Optional direct connectors (MySQL/Mongo) with retry/backoff
@@ -241,13 +242,98 @@ While `xmlstream.py` is designed as a CLI, the internals are reusable:
 
 ---
 
-## License
+## C++ Companion: `xml2stream` ⚙️
+
+A native, streaming converter written in C++ for high‑throughput scenarios and minimal runtime deps.
+
+**Key features**
+
+* Streaming parser via **libxml2 `xmlTextReader`** (pull‑based; tiny memory footprint)
+* Modes: `generic` (any XML) and `nmap` (normalized `<host>` objects)
+* Formats: `jsonl`, `mysql-sql`, and **`sqlite`** (when compiled with `-DWITH_SQLITE`)
+* Prints **help** when run with no args and no piped input
+* **Graceful SIGINT**: finishes the current record, flushes, exits cleanly
+* Safe defaults (uses `XML_PARSE_NONET` when available to block external entity/network fetches)
+
+### Dependencies 📦
+
+* Build tools: `g++` (C++17)
+* Libraries: `libxml2-dev`, `nlohmann-json3-dev`
+* Optional (for `--format sqlite`): `libsqlite3-dev`
+
+**Install on Debian/Ubuntu** 🧰
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential libxml2-dev nlohmann-json3-dev
+# optional for SQLite output
+sudo apt-get install -y libsqlite3-dev
+```
+
+### Build 🏗️
+
+```bash
+# Base build (JSONL + MySQL dump)
+g++ -O2 -std=c++17 xmlstream.cpp -o xml2stream $(pkg-config --cflags --libs libxml-2.0)
+
+# With SQLite output enabled
+g++ -O2 -std=c++17 xmlstream.cpp -o xml2stream \
+  $(pkg-config --cflags --libs libxml-2.0) -DWITH_SQLITE -lsqlite3
+```
+
+### Usage ▶️
+
+```bash
+# Nmap XML -> JSONL (one host per line)
+./xml2stream --mode nmap --record-tag host -i scan.xml -o out.jsonl
+
+# Generic XML on stdin -> JSONL (record per <item>)
+cat big.xml | ./xml2stream --mode generic --record-tag item -o -
+
+# Nmap XML -> MySQL dump (.sql import file)
+./xml2stream --mode nmap --record-tag host --format mysql-sql -i scan.xml -o scan.sql
+mysql -u user -p mydb < scan.sql
+
+# Nmap XML -> SQLite (requires -DWITH_SQLITE at build)
+./xml2stream --mode nmap --record-tag host --format sqlite --sqlite-db scan.db -i scan.xml
+```
+
+> 💡 **Note:** `--record-tag` is required to define what counts as a “row”. For Nmap, use `host`. For other XML, set it to the repeating element you want.
+
+### Smoke test 🧪
+
+```bash
+printf '<root><item id="1">A</item><item id="2">B</item></root>' \
+ | ./xml2stream --mode generic --record-tag item -o -
+```
+
+Expected output (JSONL):
+
+```json
+{"_tag":"item","@id":"1","#text":"A"}
+{"_tag":"item","@id":"2","#text":"B"}
+```
+
+### Performance & notes 📈
+
+* Prefer `jsonl` for streaming and tooling compatibility (e.g., `jq`, `mongoimport`).
+* `mysql-sql` writes a ready‑to‑import dump with a `JSON` column (MySQL 5.7+).
+* SQLite writes to a single `records(tag TEXT, json TEXT, added_at TEXT)` table; tune `--batch` for throughput.
+* Use `--pretty` only for debugging; it reduces throughput and increases file size.
+
+### Troubleshooting
+
+* **It prints help and exits:** you ran it without args and no piped input; pass `-i` or pipe XML.
+* **Compiler errors about help text:** ensure you’re using this version (fixed string assembly; no broken `<<` chains across `#ifdef`).
+* **`xmlReaderForFd` arg mismatch:** this build uses the correct signature `(fd, URL, encoding, options)`.
+
+## License 📄
 
 TBD — fill in your project’s license here (e.g., MIT).
 
 ---
 
-## Changelog
+\$1- **cpp v1.0** — Initial C++ companion (`xml2stream`) with jsonl/mysql-sql outputs and optional SQLite; help‑on‑no‑args; SIGINT soft‑stop.
 
 * **v1.1** — Help on no-args/no-stdin, improved Nmap normalization, MySQL dump.
 * **v1.0** — Initial streaming converter with JSONL & SQLite.
